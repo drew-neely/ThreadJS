@@ -5,29 +5,42 @@ var { serialize, deserialize } = require('v8');
 global.serialize = serialize;
 global.deserialize = deserialize;
 
+var resolveFunctionDict = {};
+
 process.on('SIGCHLD', () => {
     console.log('Received SIGCHLD');
-    ThreadJS.getResult();
+    var finishedPid = ThreadJS.getFinishedPid();
+    console.log("js finished pid =", finishedPid);
+    result = ThreadJS.getResult(finishedPid);
+    resolveFunctionDict[finishedPid](result);
 });
 
 var sleep = (milliseconds) => {
     return new Promise(resolve => setTimeout(resolve, milliseconds))
 }
 
-class Thread extends Promise {
-    constructor(work) {
-        super((resolve, reject) => {
-            ThreadJS.makeThread(work, resolve, reject);
-        });
-    }
-}
 
-var thread = new Thread((resolve, reject) => {
+
+var Thread = function(work) {
+    return new Promise((resolve, reject) => {
+        var childPid = ThreadJS.makeThread(work);
+        resolveFunctionDict[childPid] = resolve;
+    });
+};
+
+var thread = Thread((resolve, reject) => {
     console.log("I'm running!");
-    resolve(1000);
-});
+    resolve("The quick brown fox thdiosdlkhsagoirsjklafd");
+})
+.then((result) => console.log("res", result));
+
+var thread1 = Thread((resolve, reject) => {
+    console.log("I'm running!");
+    resolve("The quick brown fox thdiosdlkhsagoirsliasdhgslsjfgkskdghjskteopout;j;rwejijklafd");
+})
+.then((result) => {console.log("res", result); /* sleep(1000000).then(e => console.log("Yoo")) */;});
 
 
-sleep(1000).then(() => console.log("Done"));
+sleep(4000).then(() => console.log("Done"));
 
 module.exports = ThreadJS;
