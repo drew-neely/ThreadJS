@@ -5,7 +5,7 @@ var now = require("performance-now")
 
 
 const SINGLE_THREADED = false;
-const maxPrime = 20;
+const maxPrime = 10000;
 
 function isPrime(n) {
     if(n == 2) {
@@ -39,34 +39,39 @@ function getPrimesInRange(start, end, log) { // [inclusive, exclusive]
     return primes;
 }
 
-var fistPrimes = [];
-var secondPrimes = [];
 var start;
 var end;
+var all;
 
 if(SINGLE_THREADED) { // calculate in 1 thread
     start = now()
     primes = getPrimesInRange(0, maxPrime);
     end = now()
+    console.log("Calculated", primes.length, "primes in", Math.round((end-start)*100)/100,"milliseconds.");
+    process.exit();
 } else { // calculate in two threads
     start = now();
     var splitPoint = Math.round(maxPrime / 2);
     var thread = Thread((resolve, reject) => {
-        var myprimes = getPrimesInRange(0, splitPoint, true);
+        var myprimes = getPrimesInRange(0, splitPoint);
         resolve(myprimes);
-    }).then((p) => {
-        console.log("IN THEN");
-        console.log(p);
-        firstPrimes = p;
+    })
+    var promise = new Promise((resolve, reject) => {
+        var myprimes = getPrimesInRange(splitPoint, maxPrime);
+        resolve(myprimes);
+    })
+    all = Promise.all([thread, promise]).then(res => {
+        //console.log("IN ALL");
         end = now();
-        console.log("HERE");
-    });
-    secondPrimes = getPrimesInRange(splitPoint, maxPrime, true);
-    console.log("RUNNING MAIN");
+        console.log("Calculated", res[0].length + res[1].length, "primes in", Math.round((end-start)*100)/100,"milliseconds.");
+        process.exit();
+    }, (err) => {
+        console.log(err);
+    })
     // primes = getPrimesInRange(splitPoint, 0);
 }
 
-var wait = (new Promise(resolve => setTimeout(resolve, 2000))).then(() => {
+var wait = (new Promise(resolve => setTimeout(resolve, 100000))).then(() => {
     // var allPrimes = primes.concat(secondPrimes);
-    console.log("Calculated", primes.length, "primes in", Math.round((end-start)*100)/100,"milliseconds.");
+    console.log("Done");
 });

@@ -24,12 +24,10 @@ var Thread = function(work) {
     });
 };
 
-var thread = Thread((resolve, reject) => {
-    resolve(90);
-}).then(console.log);
+/* var thread = Thread((resolve, reject) => {
+    resolve({a:"this"});
+}).then(console.log); */
 
-console.log("Made Thread");
-
-sleep(1000).then(() => console.log("DONE"));
+// sleep(1000).then(() => console.log("DONE"));
 
 module.exports = Thread;

@@ -26,12 +26,13 @@ void pushBuff(uint8_t *data, size_t len){
         perror("writing message2");
     close(sockets[1]);
 
-    cout << "ending " << getppid() << endl;
+    //cout << "ending " << getppid() << endl;
     /*
         Data is written
         End process and send SIGCHILD
     */
-    raise(SIGCHILD);
+    //raise(SIGCHILD);
+    exit(0);
     cout << "Shouldn't run ever" << endl;
 }
 
@@ -65,7 +66,7 @@ Value getResult(const CallbackInfo& info) {
 }
 
 void childResolve(const CallbackInfo& info) {
-    cout << "childresolve" << endl;
+    //cout << "childresolve" << endl;
     Env env = info.Env();
     Function serialize = env.Global().Get("serialize").As<Function>();
     if(info.Length() == 1) {
@@ -87,7 +88,7 @@ void childResolve(const CallbackInfo& info) {
 }
 
 void childReject(const CallbackInfo& info) {
-    
+    assert(false);
 }
 
 Value makeThread(const CallbackInfo& info) {
@@ -100,15 +101,17 @@ Value makeThread(const CallbackInfo& info) {
         }
         pid_t pid = fork();
         if(pid == 0) { // child
-            cout <<"child " << pid <<endl;
+            //cout <<"child " << pid <<endl;
             pid = getpid();
             napi_value args[] = {
                 (napi_value)Function::New(env, childResolve),
                 (napi_value)Function::New(env, childReject)
             };
             info[0].As<Function>().Call(2, args);
+            assert(false);
+            return env.Undefined(); 
         } else { // parent
-            cout << "parent " << pid << endl;
+            //cout << "parent " << pid << endl;
             napi_value res;
             napi_create_uint32(env, pid, &res);
             return Value(env, res); 
