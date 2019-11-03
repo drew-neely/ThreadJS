@@ -5,8 +5,9 @@ var { serialize, deserialize } = require('v8');
 global.serialize = serialize;
 global.deserialize = deserialize;
 
-process.on('SIGINT', () => {
-
+process.on('SIGCHLD', () => {
+    console.log('Received SIGCHLD');
+    ThreadJS.getResult();
 });
 
 var sleep = (milliseconds) => {

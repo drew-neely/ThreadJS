@@ -3,12 +3,38 @@
 #include <iostream>
 #include <sys/types.h> 
 #include <unistd.h> 
-
-
+#include <assert.h>
 
 using namespace Napi;
 using namespace std;
 
+int sockets[2];
+
+void pushBuff(uint8_t *data, size_t len){
+    close(sockets[0]);
+    if (write(sockets[1], data, len) < 0)
+        perror("writing message");
+    close(sockets[1]);
+    exit(0);
+}
+
+uint8_t* readBuff(){
+    uint8_t* data = (uint8_t*) malloc(5);
+    close(sockets[1]);
+    if (read(sockets[0], data, 5) < 0)
+        perror("writing message");
+    close(sockets[0]);
+    return data;
+}
+
+void getResult(const CallbackInfo& info) {
+    Env env = info.Env();
+    uint8_t* data = readBuff();
+    for(int i = 0; i < 5; i++) {
+        cout << (int) data[i] << " ";
+    }
+    cout << endl;
+}
 
 void childResolve(const CallbackInfo& info) {
     Env env = info.Env();
@@ -25,6 +51,7 @@ void childResolve(const CallbackInfo& info) {
             cout << (int) bufData[i] << " ";
         }
         cout << endl;
+        pushBuff(bufData, len);
     } else {
         assert(false);
     }
@@ -37,6 +64,11 @@ void childReject(const CallbackInfo& info) {
 Value makeThread(const CallbackInfo& info) {
     Env env = info.Env();
     if(info.Length() == 3 && info[0].IsFunction() && info[1].IsFunction() && info[2].IsFunction()) {
+        if (pipe(sockets) < 0) {
+            perror("opening stream socket pair");
+            exit(10);
+        }
+        pid_t ppid = getpid();
         int pid = fork();
         if(pid == 0) { // child
             napi_value args[] = {
@@ -75,6 +107,7 @@ Value makeThread(const CallbackInfo& info) {
 
 Object Init(Env env, Object exports) {
     exports.Set(String::New(env, "makeThread"), Function::New(env, makeThread));
+    exports.Set(String::New(env, "getResult"), Function::New(env, getResult));
     // exports.Set(String::New(env, "registerSerial"), Function::New(env, registerSerial));
     return exports;
 }
